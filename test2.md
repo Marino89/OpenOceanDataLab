@@ -1,16 +1,21 @@
-GitHub Documents
-----------------
+test for uploading into github
+================
+Taeyoon Song
+February 21, 2020
+
+## GitHub Documents
 
 This is an R Markdown format used for publishing markdown documents to
 GitHub. When you click the **Knit** button all R code chunks are run and
 a markdown file (.md) suitable for publishing to GitHub is generated.
 
-Including Code
---------------
+## Including Code
 
 You can include R code in the document as follows:
 
-    summary(cars)
+``` r
+summary(cars)
+```
 
     ##      speed           dist       
     ##  Min.   : 4.0   Min.   :  2.00  
@@ -20,12 +25,11 @@ You can include R code in the document as follows:
     ##  3rd Qu.:19.0   3rd Qu.: 56.00  
     ##  Max.   :25.0   Max.   :120.00
 
-Including Plots
----------------
+## Including Plots
 
 You can also embed plots, for example:
 
-![](test2_files/figure-markdown_strict/pressure-1.png)
+![](test2_files/figure-gfm/pressure-1.png)<!-- -->
 
 Note that the `echo = FALSE` parameter was added to the code chunk to
 prevent printing of the R code that generated the plot.
