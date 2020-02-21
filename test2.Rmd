@@ -15,7 +15,7 @@ output:
     hard_line_breaks: TRUE,
     pandoc_args: NULL,
     html_preview: TRUE,
-    keep_html: FALSE
+    keep_html: TRUE
 ---
 
 ```{r setup, include=FALSE}
