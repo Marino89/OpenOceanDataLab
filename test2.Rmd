@@ -1,0 +1,46 @@
+---
+title: "test for uploading into github"
+author: Taeyoon Song
+date: February 21, 2020
+output: 
+  github_document(
+  toc = FALSE,
+  toc_depth = 3,
+  fig_width = 7,
+  fig_height = 5,
+  dev = "png",
+  df_print = "default",
+  includes = NULL,
+  md_extensions = NULL,
+  hard_line_breaks = TRUE,
+  pandoc_args = NULL,
+  html_preview = TRUE,
+  keep_html = FALSE
+)
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## GitHub Documents
+
+This is an R Markdown format used for publishing markdown documents to GitHub. When you click the **Knit** button all R code chunks are run and a markdown file (.md) suitable for publishing to GitHub is generated.
+
+## Including Code
+
+You can include R code in the document as follows:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
