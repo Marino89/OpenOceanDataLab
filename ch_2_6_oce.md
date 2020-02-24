@@ -21,7 +21,9 @@ oceans$rankByAvgDepth <- order(order(oceans$AvgDepth, decreasing = TRUE)) # Rank
 
 ## 2.6.2 해찾기
 
-일변량 함수의 해는 `uniroot()`로 찾을 수 있음: 다항식 \(a_1 + a_2x + a_3x^2\) 의 해찾기
+일변량 함수의 해는 `uniroot()`로 찾을 수 있음: 다항식 ![a\_1 + a\_2x +
+a\_3x^2](https://latex.codecogs.com/png.latex?a_1%20%2B%20a_2x%20%2B%20a_3x%5E2
+"a_1 + a_2x + a_3x^2") 의 해찾기
 
 ``` r
 polyroot(c(-1, 0, 1))
@@ -31,7 +33,10 @@ polyroot(c(-1, 0, 1))
 
 ## 2.6.3 적분
 
-함수의 적분은 `integrate()` \[\int_0^\pi \sin\theta\,d\theta\]
+함수의 적분은 `integrate()`   
+![\\int\_0^\\pi
+\\sin\\theta\\,d\\theta](https://latex.codecogs.com/png.latex?%5Cint_0%5E%5Cpi%20%5Csin%5Ctheta%5C%2Cd%5Ctheta
+"\\int_0^\\pi \\sin\\theta\\,d\\theta")  
 
 ``` r
 integrate(sin, 0, pi)
@@ -86,7 +91,10 @@ Sinterp
     ## [81] 31.39897 31.39681 31.39885 31.39535 31.40666 31.41978 31.39375 31.38905
     ## [89] 31.39440
 
-\[\epsilon = 15 \nu \int_0^\infty k^2 \phi \,dk\]
+  
+![\\epsilon = 15 \\nu \\int\_0^\\infty k^2 \\phi
+\\,dk](https://latex.codecogs.com/png.latex?%5Cepsilon%20%3D%2015%20%5Cnu%20%5Cint_0%5E%5Cinfty%20k%5E2%20%5Cphi%20%5C%2Cdk
+"\\epsilon = 15 \\nu \\int_0^\\infty k^2 \\phi \\,dk")  
 
 ``` r
 data(turbulence, package="ocedata")
