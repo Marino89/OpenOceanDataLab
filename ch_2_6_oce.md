@@ -117,5 +117,120 @@ nu <- 1e4 * swViscosity(35, 10) / swRho(35, 10, 10, eos="unesco")
 
     ## [1] 0.6810874
 
-\``Note that the`echo = FALSE\` parameter was added to the code chunk to
+## 2.6.6 Two-Dimentsional Interpolation
+
+직사각형 그리드 상에 내삽하는 2차원 케이스는 `fields` 패키지의 `interp.surface()`로 다룬다. (2차원
+맵에서 수심의 결측치 또는 내삽를 구할 때; 수학에서 *이중선 보간*은 직선 2D 그리드에서 두 변수의 함수를
+보간하기위한 선형 보간의 확장입니다. 쌍방향 보간은 먼저 한 방향으로 선형 보간을 사용하여 수행 한 다음 다른
+방향으로 다시 수행합니다.) ![z=z(x,
+y)](https://latex.codecogs.com/png.latex?z%3Dz%28x%2C%20y%29
+"z=z(x, y)") local bilinear interpolation   
+![(1-x^\\prime)(1-y^\\prime)z\_{00} + 91-x^\\prime)\\,y^\\prime
+\\,z\_{01} + x^\\prime(1-y^\\prime)\\,z\_{10} + x^\\prime y^\\prime
+z\_{11}](https://latex.codecogs.com/png.latex?%281-x%5E%5Cprime%29%281-y%5E%5Cprime%29z_%7B00%7D%20%2B%2091-x%5E%5Cprime%29%5C%2Cy%5E%5Cprime%20%5C%2Cz_%7B01%7D%20%2B%20x%5E%5Cprime%281-y%5E%5Cprime%29%5C%2Cz_%7B10%7D%20%2B%20x%5E%5Cprime%20y%5E%5Cprime%20z_%7B11%7D
+"(1-x^\\prime)(1-y^\\prime)z_{00} + 91-x^\\prime)\\,y^\\prime \\,z_{01} + x^\\prime(1-y^\\prime)\\,z_{10} + x^\\prime y^\\prime z_{11}")  
+  
+![\\epsilon = 15 \\nu \\int\_0^\\infty k^2 \\phi
+\\,dk](https://latex.codecogs.com/png.latex?%5Cepsilon%20%3D%2015%20%5Cnu%20%5Cint_0%5E%5Cinfty%20k%5E2%20%5Cphi%20%5C%2Cdk
+"\\epsilon = 15 \\nu \\int_0^\\infty k^2 \\phi \\,dk")  
+\#\#\# Ex. 2.40 경로를 따라 수심 H가 어떻게 변하는지를 지도로 그려라.
+
+``` r
+library(fields)
+```
+
+    ## Loading required package: spam
+
+    ## Loading required package: dotCall64
+
+    ## Loading required package: grid
+
+    ## Spam version 2.5-1 (2019-12-12) is loaded.
+    ## Type 'help( Spam)' or 'demo( spam)' for a short introduction 
+    ## and overview of this package.
+    ## Help for individual functions is also obtained by adding the
+    ## suffix '.spam' to the function name, e.g. 'help( chol.spam)'.
+
+    ## 
+    ## Attaching package: 'spam'
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     backsolve, forwardsolve
+
+    ## Loading required package: maps
+
+    ## See https://github.com/NCAR/Fields for
+    ##  an extensive vignette, other supplements and source code
+
+    ## 
+    ## Attaching package: 'fields'
+
+    ## The following object is masked from 'package:testthat':
+    ## 
+    ##     describe
+
+``` r
+library(ocedata)
+data(gs, package="ocedata")
+lon <- rev(gs$longitude)
+lat <- rev(apply(gs$latitude, 1, mean))
+data(coastlineWorldMedium, package="ocedata")
+par(mfrow=c(1,2), mar=c(3,3,1,1))
+mapPlot(coastlineWorldMedium, proj="+proj=lcc +lon_0=-65 +ellps=WGS84", grid=c(5,5),
+        longitudelim=c(280, 310),
+        latitudelim=c(35, 50))
+data(topoWorld, package = "oce")
+z <- topoWorld[["z"]]
+x <- topoWorld[["longitude"]]
+y <- topoWorld[["latitude"]]
+mapContour(x, y, z, levels=seq(-6000, -1000, 1000), col="gray")
+mapLines(lon, lat, type="o", pch=20)
+mapPoints(-(63+45/60), 40+56/60, pch=2)
+H <- -0.001*interp.surface(list(x=x, y=y, z=z), cbind(lon, lat))
+distance <- geodDist(lon, lat, lon[1], lat[1])
+plot(distance, H, xlab="Distance [km]", ylab="Depth [km]", ylim=c(max(H), 0), type="o", pch=20)
+```
+
+![](ch_2_6_oce_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+
+## 2.6.6 Locally Weighted Polynomial Fitting(지역 가중 다항식 적합)
+
+R에서는 *lowess()*, *loess()*가 있음; *loess*가 최신임 span 인자로 스무딩 조절
+
+``` r
+data(papa, package="ocedata")
+day <- as.numeric(papa$t - papa$t[1]) / 86400
+salinity <- papa$salinity[, 1]
+plot(day, salinity, ylab="Salinity", col="gray")
+l <- loess(salinity ~ day)
+lines(day, predict(l))
+ll <- loess(salinity ~ day, span=0.25)
+lines(day, predict(ll), lty="dashed")
+legend("topright", lty=1:2, legend=c("span=0.75", "span=0.25"))
+```
+
+![](ch_2_6_oce_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+
+## 2.6.7 Interpolating and Smoothing Splines
+
+R에서는 보간 스플린으로 *spline()*, *splinefun()* 함수를, 스무딩 스플린으로
+*smooth.spline()*; 이 함수들은 지저분한 (noisy)한 해양데이터에 유용함; 예를 들어 스무딩 스플린 함수는
+turbulence data에 적합함
+
+``` r
+data(turbulence, package="ocedata")
+k <- turbulence$k
+kk <- seq(min(k), max(k), length.out = 100)
+phi <- turbulence$phi
+s <- smooth.spline(k, k^2*phi) # 함수식 생성
+spred <- predict(s, kk)
+plot(k, k^2*phi, pch=20, ylim=c(0, 0.41), 
+     xlab=expression(k), ylab=expression(k^2*phi))
+lines(spred$x, spred$y, lty="dotted")
+```
+
+![](ch_2_6_oce_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+Note that the `echo = FALSE` parameter was added to the code chunk to
 prevent printing of the R code that generated the plot.

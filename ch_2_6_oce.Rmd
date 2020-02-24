@@ -77,6 +77,65 @@ nu <- 1e4 * swViscosity(35, 10) / swRho(35, 10, 10, eos="unesco")
 
 ```
 
+## 2.6.6 Two-Dimentsional Interpolation
 
-``
+직사각형 그리드 상에 내삽하는 2차원 케이스는 `fields` 패키지의 `interp.surface()`로 다룬다.
+(2차원 맵에서 수심의 결측치 또는 내삽를 구할 때; 수학에서 *이중선 보간*은 직선 2D 그리드에서 두 변수의 함수를 보간하기위한 선형 보간의 확장입니다. 쌍방향 보간은 먼저 한 방향으로 선형 보간을 사용하여 수행 한 다음 다른 방향으로 다시 수행합니다.)
+$z=z(x, y)$ local bilinear interpolation
+$$(1-x^\prime)(1-y^\prime)z_{00} + 91-x^\prime)\,y^\prime \,z_{01} + x^\prime(1-y^\prime)\,z_{10} + x^\prime y^\prime z_{11}$$
+$$\epsilon = 15 \nu \int_0^\infty k^2 \phi \,dk$$
+### Ex. 2.40
+경로를 따라 수심 H가 어떻게 변하는지를 지도로 그려라.
+```{r}
+library(fields)
+library(ocedata)
+data(gs, package="ocedata")
+lon <- rev(gs$longitude)
+lat <- rev(apply(gs$latitude, 1, mean))
+data(coastlineWorldMedium, package="ocedata")
+par(mfrow=c(1,2), mar=c(3,3,1,1))
+mapPlot(coastlineWorldMedium, proj="+proj=lcc +lon_0=-65 +ellps=WGS84", grid=c(5,5),
+        longitudelim=c(280, 310),
+        latitudelim=c(35, 50))
+data(topoWorld, package = "oce")
+z <- topoWorld[["z"]]
+x <- topoWorld[["longitude"]]
+y <- topoWorld[["latitude"]]
+mapContour(x, y, z, levels=seq(-6000, -1000, 1000), col="gray")
+mapLines(lon, lat, type="o", pch=20)
+mapPoints(-(63+45/60), 40+56/60, pch=2)
+H <- -0.001*interp.surface(list(x=x, y=y, z=z), cbind(lon, lat))
+distance <- geodDist(lon, lat, lon[1], lat[1])
+plot(distance, H, xlab="Distance [km]", ylab="Depth [km]", ylim=c(max(H), 0), type="o", pch=20)
+```
+
+## 2.6.6 Locally Weighted Polynomial Fitting(지역 가중 다항식 적합)
+R에서는 *lowess()*, *loess()*가 있음; *loess*가 최신임 span 인자로 스무딩 조절
+```{r}
+data(papa, package="ocedata")
+day <- as.numeric(papa$t - papa$t[1]) / 86400
+salinity <- papa$salinity[, 1]
+plot(day, salinity, ylab="Salinity", col="gray")
+l <- loess(salinity ~ day)
+lines(day, predict(l))
+ll <- loess(salinity ~ day, span=0.25)
+lines(day, predict(ll), lty="dashed")
+legend("topright", lty=1:2, legend=c("span=0.75", "span=0.25"))
+```
+
+## 2.6.7 Interpolating and Smoothing Splines
+R에서는 보간 스플린으로 *spline()*, *splinefun()* 함수를, 스무딩 스플린으로 *smooth.spline()*; 이 함수들은 지저분한 (noisy)한 해양데이터에 유용함; 예를 들어 스무딩 스플린 함수는 turbulence data에 적합함 
+```{r}
+data(turbulence, package="ocedata")
+k <- turbulence$k
+kk <- seq(min(k), max(k), length.out = 100)
+phi <- turbulence$phi
+s <- smooth.spline(k, k^2*phi) # 함수식 생성
+spred <- predict(s, kk)
+plot(k, k^2*phi, pch=20, ylim=c(0, 0.41), 
+     xlab=expression(k), ylab=expression(k^2*phi))
+lines(spred$x, spred$y, lty="dotted")
+
+```
+
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
