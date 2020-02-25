@@ -139,7 +139,11 @@ z\_{11}](https://latex.codecogs.com/png.latex?%281-x%5E%5Cprime%29%281-y%5E%5Cpr
 library(fields)
 ```
 
+    ## Warning: package 'fields' was built under R version 3.6.2
+
     ## Loading required package: spam
+
+    ## Warning: package 'spam' was built under R version 3.6.2
 
     ## Loading required package: dotCall64
 
@@ -172,6 +176,11 @@ library(fields)
 
 ``` r
 library(ocedata)
+```
+
+    ## Warning: package 'ocedata' was built under R version 3.6.2
+
+``` r
 data(gs, package="ocedata")
 lon <- rev(gs$longitude)
 lat <- rev(apply(gs$latitude, 1, mean))
@@ -231,6 +240,123 @@ lines(spred$x, spred$y, lty="dotted")
 ```
 
 ![](ch_2_6_oce_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+Ex. 2.41 turbulence data에 대한 보간 및 스무딩 스필린의 예측을 비교하라 보간 스플린은 때때로 wiggle
+현상이 발새함; 스무딩 스플린된 곡선이 해석적 특징을 잘 보여줌; 필요한 경우 df(1-2의 값; 자유도:
+smoothing parameter)를 변경해줄 필요가 있음
+
+``` r
+data(turbulence, package="ocedata")
+k <- turbulence$k
+phi <- turbulence$phi
+y <- k^2 * phi
+par(mfrow=c(1,2))
+plot(k, y, ylab=expression(k^2*phi), ylim=c(0, 0.40),
+     type="n")                                      # type "n": for no plotting
+rug(k, side=1, ticksize=0.06, lwd=1)
+n <- 200
+lines(spline(k, y, n=n))          # spline 함수: cubic or Hemite spling
+plot(k, y, ylab="", ylim=c(0, 0.40), pch=20)
+lines(predict(smooth.spline(k, y, df=7), seq(0, 35, length.out=n)))  # smooth.spline
+```
+
+![](ch_2_6_oce_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+
+Ex 2.42 스무딩 스필린의 예측을 반화하는 함수를 생성하고
+![\\epsilon](https://latex.codecogs.com/png.latex?%5Cepsilon
+"\\epsilon") (rate of viscous dissipation of turbulent kinetic energy
+per unit mass)
+
+``` r
+s <- smooth.spline(k, k^2 * phi)       # smooth.spline으로 보간 및 스무딩을 시행하고
+f <- function(x) predict(s, x)$y       # 예측하는 함수를 생성하여 
+15* nu * integrate(f, min(k), max(k))$value  # rate of viscuous dissipation 구하기; nu값은 2.6.4 참조할 것
+```
+
+    ## [1] 0.64018
+
+## 2.6.8 Cluster Analysis
+
+군집분석은 그룹들간의 유사성에 기반한 서브셋으로 나누는데 사용; 인기있는 k means 클러스터 분석에서 유사정도는 속성공간에서의
+유클리디안 거리, 즉
+  
+![\\sum\_{i=1}^{n}(x\_i-\\hat{x}\_i)^2](https://latex.codecogs.com/png.latex?%5Csum_%7Bi%3D1%7D%5E%7Bn%7D%28x_i-%5Chat%7Bx%7D_i%29%5E2
+"\\sum_{i=1}^{n}(x_i-\\hat{x}_i)^2")  
+where ![x\_1 \\cdots
+x\_n](https://latex.codecogs.com/png.latex?x_1%20%5Ccdots%20x_n
+"x_1 \\cdots x_n") 과 ![\\hat{x}\_1 \\cdots
+\\hat{x}\_n](https://latex.codecogs.com/png.latex?%5Chat%7Bx%7D_1%20%5Ccdots%20%5Chat%7Bx%7D_n
+"\\hat{x}_1 \\cdots \\hat{x}_n") 은 n차원 속성공간에서 2개 포인트의 좌표값
+
+속성의 단위를 무차원 형식으로 표현하면   
+![\\sum\_{i=}^{n} \\frac{(x\_i -
+\\hat{x}\_i)^2}{L\_i^2}](https://latex.codecogs.com/png.latex?%5Csum_%7Bi%3D%7D%5E%7Bn%7D%20%5Cfrac%7B%28x_i%20-%20%5Chat%7Bx%7D_i%29%5E2%7D%7BL_i%5E2%7D
+"\\sum_{i=}^{n} \\frac{(x_i - \\hat{x}_i)^2}{L_i^2}")  
+
+``` r
+data(papa, package="ocedata")
+S <- as.vector(papa$salinity)
+Temp <- as.vector(papa$temperature)
+p <- rep(swPressure(-papa$z), each=dim(papa$salinity)[1])
+ctd <- as.ctd(S, Temp, p, longitude=-145, latitude=50)
+plotTS(ctd, pch=20, cex=1/2, eos="unesco")
+```
+
+![](ch_2_6_oce_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+
+``` r
+plotTSCluster <- function(ctd, k=4)
+{
+  theta <- swTheta(ctd)
+  Stheta <- scale(cbind(S, theta), TRUE, TRUE)
+  cl <- kmeans(Stheta, k, nstart = 30)
+  plotTS(ctd, col="darkgray", pch=20, cex=0.5, eos="unesco")
+  which <- cl$cluster
+  for (i in 1:k){
+    x <- S[which==i]
+    y <- theta[which==i]
+    hull <- chull(x, y) # chull() computes complex hulls (블록포)
+    hull <- c(hull, hull[1])
+    lines(x[hull], y[hull])
+  }
+}
+
+set.seed(268)
+plotTSCluster(ctd, 2)
+```
+
+![](ch_2_6_oce_files/figure-gfm/unnamed-chunk-11-2.png)<!-- -->
+
+``` r
+plotTSCluster(ctd, 4)
+```
+
+![](ch_2_6_oce_files/figure-gfm/unnamed-chunk-11-3.png)<!-- -->
+
+## 2.6.9 Fast Fourier Transforms
+
+*fft()* 함수는 전방 및 후방 fast Fourier transforms(FFT)를 제공하는데, *Convolve()*,
+*spectrum()* 함수를 이용함
+
+``` r
+fftn <- function(z, inverse=FALSE)
+  fft(z, inverse) / sqrt(length(z))   # normalization
+library(testthat)
+x <- rnorm(100)
+X <- fftn(x)
+xx <- fftn(X, TRUE)
+expect_equal(sum(x^2), sum(Mod(X)^2))
+expect_equal(x+0i, fftn(fftn(x), inverse=TRUE))
+plot(x, type="h")
+```
+
+![](ch_2_6_oce_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+
+``` r
+plot(xx, type="h")             
+```
+
+![](ch_2_6_oce_files/figure-gfm/unnamed-chunk-12-2.png)<!-- -->
 
 Note that the `echo = FALSE` parameter was added to the code chunk to
 prevent printing of the R code that generated the plot.
