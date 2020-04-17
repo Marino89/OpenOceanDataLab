@@ -1,0 +1,129 @@
+---
+title: "rsoi 패키지를 활용한 R에서 남방진동지수 데이터 접근하기"
+output: html_notebook
+references:
+- id: Albers2020a
+  title: Rsoi:Import Various Northern and Southern Hemisphere Climate Indices
+  author:
+  - family: Albers
+    given: Sam
+  URL: 'https://CRAN.R-project.org/package=rsoi'
+  issued:
+    year: 2020
+- id: Wickham2016a
+  title: Ggplot2:Elegant Graphics for Data Analysis
+  author:
+  - family: Wickham
+    given: Hadley
+  URL: 'http://ggplot2.org.'
+  publisher: Springer-Verlag New York
+  type: book
+  issued:
+    year: 2016
+- id: Wickham2017a
+  title: Tidyverse:Easily Install and Load the ’Tidyverse’
+  author:
+  - family: Wickham
+    given: Hadley
+  URL: 'https://CRAN.R-project.org/package=tidyverse'
+  issued:
+    year: 2017
+- id: Wickham2018a
+  title: Dplyr:A Grammar of Data Manipulation
+  author:
+  - family: Wickham
+    given: Hadley
+  - family: François
+    given: Romain
+  - family: Henry
+    given: Lionel
+  - family: Müller
+    given: Kirill   
+  URL: 'https://CRAN.R-project.org/package=dplyr'
+  issued:
+    year: 2018
+---
+
+
+
+[Masumbuko Semba의 개인블로그](https://semba-blog.netlify.app/01/13/2020/access-southern-oscillation-index-data-with-rsoi-package-in-r/)의 포스트를 번역하였음
+
+## 들어가며
+남봉진동지수(SOI)는 호주의 *Tahiti*와 *Darwin* 사이의 정규화된 대기압 편차로 정의된다. 이 지수는 엘리뇨(El Niño)와 라니냐(La Niña) 동안에 열대 태평양의 서부와 동부사이에서 발생하는 대규모의 대기압 변동값이다. 일반적으로 SOI의 스무드(Smoothed) 시계열은 열대 태평양 동부해역에 걸쳐 해수온도의 변동과 매우 잘 일치한다.
+
+SOI의 음의 구간은 타이티에서의 below-normal 대기압과 Darwin에서의 above-normal 대기압을 의미한다. SOI의 음(양)의 값 시기는 엘리뇨(라니냐) 에피소드 시기에 동부 열대태평양에서 비정상적으로 더운(차가운) 해수와 일치한다. SOI 계산방법은 Climate Prediction Center SOI 페이지에서 확인할 수 있다.
+
+@Albers2020a 가 개발한 `rsoi` 패키지는 여러가지의 북반구와 남반구의 기후지수에 접근할수 있는 툴을 제공한다. 대표적인 지수로는 
+- Southern Oscillation Index
+- Oceanic Nino Index
+- North Pacific Gyre Oscillation
+- North Atlantic Oscillation
+- Arctic Oscillation
+- Antarctic Oscillation
+- Multivariate ENSO Index Version 2
+
+이 포스트에서는 패키지를 설치하고 데이터를 다운로드하여 시각화는 방법을 설명한다. `rsoi`패키지는 'Comprehensive R Archive Network (CRAN)'에서 이용할 수 있으며 아래와 같이 청크(chunk)로 설치할 수 있다.
+
+```{r}
+#install.packages("rsoi")
+
+```
+
+패키지를 설치한 후 함수들에 접근하기 위해 세션으로 패키지를 불러와야 한다. 먼저 library 함수를 이용하여 세션으로 패키지를 불러오고, 데이터 조작과 플롯팅을 하기 위한 툴로 `tidyverse`[@Wickham2017a]을 불러온다.
+```{r}
+library(rsoi)
+library(tidyverse)
+```
+
+rsoi의 장점은 지수들을 다운로드하는 모든 함수가 download_ 다음에 특정한 지수명들로 시작한다는 것이다. 예를 들어, 함수 download_soi는 남방진동지수 데이터에 접근하고 다운로드 하는데 사용된다. 
+다운로드된 SOI 데이터는 데이터프레임 형식이고 `str`함수나 dplyr 패키지[@Wickham2018a]의 `glimpse`함수로 데이터셋의 내부구조를 살펴볼 수 있다. 표 1.은 다운로드한 남방지수값을 간단하게 보여준다. 
+```{r}
+soi = download_soi()
+soi
+```
+
+데이터를 얻게된 후에는 SOI 값을 음(양)의 시기로 구분하여 시각화할 수 있다. 이는 엘리뇨(라니냐) 에피소드 시기에 동부 열대 태평양의 비이상적인 고수온(저수온)과 일치한다. 그림 1은 *ggplot2*패키지[@Wickham2016a]로 SOI의 진동을 플롯팅한 것을 보여준다. 
+
+```{r}
+soi.status = soi %>% mutate(status = if_else(SOI >= 0, "positive", "negative"))
+
+soi.plot = ggplot(data = soi.status, aes(x = Date, y = SOI, fill = status))+
+  geom_col()+
+  # ggsci::scale_fill_d3() +
+  scale_fill_manual(values = c("red", "blue")) +
+  cowplot::theme_minimal_grid()+
+  labs(x = "", y = "SOI Index") +
+  scale_y_continuous(breaks = seq(-3,3,1)) +
+  # scale_x_date(date_breaks = "10 years", date_labels = "%Y")+
+  theme(legend.position = "none", panel.grid = element_line(linetype = "dotted"))
+
+soi.plot %>% plotly::ggplotly()
+```
+그림1. 남방진동(SOI). 플롯 상에 마우스를 놓으면 윈도우가 나타나서 플롯을 인터랙티브하게 조작할 수 있음
+
+```{r}
+ao = download_ao()
+ao
+```
+
+```{r}
+ao.status = ao %>% mutate(status = if_else(AO >= 0, "positive", "negative"))
+
+ao.plot = ggplot(data = ao.status, aes(x = Date, y = AO, fill = status))+
+  geom_col()+
+  # ggsci::scale_fill_d3() +
+  scale_fill_manual(values = c("red", "blue")) +
+  cowplot::theme_minimal_grid()+
+  labs(x = "", y = "AO Index") +
+  scale_y_continuous(breaks = seq(-3,3,1)) +
+  # scale_x_date(date_breaks = "10 years", date_labels = "%Y")+
+  theme(legend.position = "none", panel.grid = element_line(linetype = "dotted"))
+
+ao.plot %>% plotly::ggplotly()
+```
+
+### Summary
+우리는 `rsoi`를 이용하여 R에서 SOI 데이터에 접근하고 `ggplot2` 패키지로 시각화하는 방법을 살펴보았다. 이러한 데이터를 수집하는 유일한 인덱스는 아님에 주의하자. `roi` 패키지는 다른 인텍스들을 다운로드하는 보다 많은 함수를 제공한다. 따라서 이 포스트에서 설명한 방법과 유사한 방식으로 보다 많은 다른 인텍스를 탐색하고 수집할 수 있다.
+
+# References
+

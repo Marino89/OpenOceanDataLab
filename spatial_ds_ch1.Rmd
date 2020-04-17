@@ -1,0 +1,211 @@
+---
+title: "Spaitial Data Science Ch1. Getting Started"
+output: html_notebook
+---
+
+## 1.1 A first map
+
+```{r}
+library(tidyverse)
+library(sf)
+
+system.file("gpkg/nc.gpkg", package="sf") %>% 
+  read_sf() %>% 
+  st_transform(32119) %>%                      # st_transform 은 새로운 참조체계(EPSG코드 32119의 노스캐롤라이나 주)로 변환됨 
+  select(BIR74) %>% 
+  plot(graticule = TRUE, axes = TRUE)
+
+```
+
+여기서 `tidyverse`는 tidyverse 함수와 방법에 필요하고, `sf`는 공간적 명령어와 공간적 tidyverse 방법에 필요함. 패키지 `sf`는 단순한 피쳐를 실행하는데 있어, 벡터 데이터를 엔코드하는 표준화된 방식임. 패키지 `sf`에서 대부분의 명령어는 `st_`로 시작하는데, 이는 spatialtemporal을 줄인 말로, PostGIS에서도 사용되는 규약임.
+
+
+
+```{r}
+library(tidyverse)
+library(sf)
+
+system.file("gpkg/nc.gpkg", package="sf") %>% 
+  read_sf() %>% 
+  st_transform(32119) %>%                      # st_transform 은 새로운 참조체계(EPSG코드 32119의 노스캐롤라이나 주)로 변환됨 
+  select(BIR74) %>% 
+  plot(graticule = TRUE, axes = TRUE)
+
+```
+
+
+
+```{r}
+ggplot() + geom_sf(data = nc.32119) + aes(fill = BIR74) +
+  theme(panel.grid.major = element_line(color = "white")) +
+  scale_fill_gradientn(colors = sf.colors(20))
+```
+
+
+```{r}
+nc.32119 %>% select(SID74, SID79) %>% gather(VAR, SID, -geom) -> nc2
+ggplot() + geom_sf(data = nc2, aes(fill = SID)) + facet_wrap(~VAR, ncol = 1) +
+  scale_y_continuous(breaks = 34:36) +
+  scale_fill_gradientn(colors = sf.colors(20)) +
+  theme(panel.grid.major = element_line(color = "white"))
+```
+
+## 1.2 Reading and writing
+전형적인 R 데이터 사이언스는 외부 소스로부터 데이터를 읽는데서 시작하는데, 그 소스는 파일, 쉐이프 파일셋, 데이터베이스, 웹서비스 등이 될 수 있음. 
+패키지`sf`는 여러 데이터 소스 유형을 읽을 수 있으며, 각각은 자신의 driver를 가짐. 다음의 명령어는 얼마나 많은 벡터와 래스터 드라이버를 이용할 수 잇는지를 보여줌
+
+```{r}
+st_drivers("vector") %>% nrow()
+st_drivers("raster") %>% nrow()
+```
+(GDAL의 같은 버전을 사용 중일때는, `sf`에서 이용가능한 드라이버는 rgdal과 같음)
+
+### 1.2.1 GDAL
+`st_drivers` 는 GDAL에서 이용가능한 드라이버를 리스트로 보여주는데, 이러한 라이브러리는 R에서 뿐만 아니라 파이썬, QGIS, PostGis 등에서 사용중에 있음. 다른 R 패키지 및 시스템 라이브러리에 대한 `sf`의 의존성은 아래 그림과 같음
+
+
+![sf_dependence](./figures/sf_deps.png)
+
+### 1.2.2 `st_read` or `read_sf` ?
+`st_read`는 벡터데이터를 읽는 함수. `read_sf`함수는 크게 보면 `st_read`와 동일하지만, 몇가지 tidyverse 스타일 디폴트를 선택함:
+- `st_read`는 짧은 리포트
+- `read_sf`는 공간 data frame 대신 공간 tibble
+- `read_sf`는 입력값으로 리스트 컬럼(list-columns)을 인정
+
+
+### 1.2.3 reading and writing raster data
+래스터 데이터는 `stars` 패키지로부터 함수 `read_stars`를 이용하여 읽어들일 수 있음 
+```{r}
+library(stars)
+tif = system.file("tif/L7_ETMs.tif", package = "stars")
+(x = tif %>% read_stars())
+
+```
+
+```{r}
+plot(x)
+```
+
+유사하게, 우리는 `write_stars`로 `stars` 객체로 된 래스터 데이터를 쓰기(write)할 수 있음
+
+```{r}
+tif_file = paste0(tempfile(), ".tif")
+write_stars(x, tif_file)
+```
+
+우리는 꺼꾸로 래스터 메타데이터를 읽을 수 있음(차원과 참조체계, 그러나 실제 픽셀값은 아님)
+
+```{r}
+read_stars(tif_file, proxy = TRUE)
+```
+
+### 1.2.4 Reading from files, and legacy shapefiles
+
+어떤 경우엔, 공간데이터셋은 다중 파일들을 포함한다. 예를 들어 쉐이프 파일의 경우, "쉐이프파일"은 실제 공통의 접두사를 가진 팡링 셋으로 이해되어야 함
+패키지 `sf`는 몇가지 쉐이프 파일을 가지고 있으며, `shape` 디렉토리에 있음
+
+```{r}
+list.files(system.file("shape/", package = "sf"))
+```
+
+```{r}
+system.file("shape/nc.shp", package="sf") %>% read_sf() -> nc
+# system.file("shape", package="sf") %>% read_sf() -> something
+```
+
+
+```{r}
+system.file("shape", package="sf") %>% st_layers()
+```
+
+### 1.2.5 문자열 읽기
+GeoJSON 데이터셋에 긴 문자벡터를 포함한 경우엔, `read_sf`로 전달되고 메모리로부터 읽어들임
+
+```{r}
+str <- '{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [102.0, 0.5]
+      },
+      "properties": {
+        "prop0": "value0"
+      }
+    },
+    { "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [102.0, 0.0], [103.0, 1.0], [104.0, 0.0], [105.0, 1.0]
+        ]
+      },
+      "properties": {
+        "prop0": "value0",
+        "prop1": 0.0
+      }
+    },
+    { "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [100.0, 0.0], [101.0, 0.0], [101.0, 1.0],
+            [100.0, 1.0], [100.0, 0.0]
+          ]
+        ]
+      },
+      "properties": {
+        "prop0": "value0",
+        "prop1": { "this": "that" }
+      }
+    }
+  ]
+}'
+(sf_obj <- read_sf(str))
+```
+
+### 1.2.6 데이터베이스
+데이터가 두개의 경로를 거처 직접 공간 데이터베이스로부터 읽혀질 수 있음. 첫째는 SQLITE 데이터베이스와 같은 R의 표준 데이터베이스 인터페이스를 사용함. 
+```{r}
+library(RSQLite)
+db = system.file("sqlite/meuse.sqlite", package = "sf")
+dbcon <- dbConnect(dbDriver("SQLite"), db)
+(s = st_read(dbcon, "meuse.sqlite"))[1:3,]
+```
+
+다른 방법으론 GDAL 데이터베이스 드라이버를 사용하는 것, 예를 들어
+
+```{r}
+st_read(db)[1:3, ]
+```
+
+전자의 접근법이 가진 잇점은 쿼리가 전달될 수 있다는 점임.
+
+## 1.3 연습
+
+1. `shape` 디렉토리로부터 `storms_xyz_feature` 쉐이프파일을 읽어라
+```{r}
+list.files(system.file("shape", package = "sf"))
+system.file("shape/storms_xyz_feature.shp", package="sf") %>% read_sf() -> storms
+storms
+plot(storms, axes = TRUE)
+```
+
+2. 이 파일을 사용자 컴퓨터의 디렉토리에 복사하고 거기에서 읽어라.
+```{r}
+storms <- st_read(system.file("shape/storms_xyz_feature.shp", package="sf"))
+newsf <- st_zm(storms, drop=T, what='ZM')
+newsf <- newsf %>%  st_set_crs(4326)
+st_write(newsf, "storms_xyz_feature1.shp")
+```
+
+3. 
+```{r}
+list.files(system.file("shape", package = "sf"))
+system.file("shape/storms_xyz_feature.shp", package="sf") %>% read_sf() -> storms
+storms1 <- storms %>% st_set_crs(4326)
+plot(storms1, axes = TRUE)
+```
+
